@@ -52,6 +52,7 @@ RETURNS (example): `{"success":true,"total":10,"characters":10,"expires":"2021-1
 ### Get Fact
 Vars:
 - `TOKEN` String: Application Token
+
 SPAWN: `curl "truncatedprinterfacts/api/fact?key=$TOKEN"`
 
 RETURNS (example): `New printe`
