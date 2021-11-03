@@ -1,0 +1,167 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: printerfacts
+    component: server
+  name: printerfactsserver
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: printerfacts
+      component: server
+  template:
+    metadata:
+      labels:
+        app: printerfacts
+        component: server
+    spec:
+      containers:
+      - name: printerfactsserver
+        image: wpfindlay/comp4000-ex1:server-latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 4000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-deployment
+spec:
+  selector:
+    matchLabels:
+      app: mongo
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - image: mongo
+          name: mongo
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: m-persistant
+              mountPath: /data/db
+      restartPolicy: Always
+      volumes:
+        - name: m-persistant
+          persistentVolumeClaim:
+            claimName: mongo-persistent-claim
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: printerfacts
+    component: client
+  name: printerfactsclient
+spec:
+  containers:
+  - name: printerfactsclient
+    image: wpfindlay/comp4000-ex1:client-latest
+    imagePullPolicy: Always
+    command:
+    - sleep
+    - infinity
+  restartPolicy: Never
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: truncatedprinterfacts
+    component: server
+  name: truncatedprinterfactsserver
+spec:
+  containers:
+  - name: truncatedprinterfactsserver
+    image: tpfaas:latest
+    imagePullPolicy: Never
+  restartPolicy: Always
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: printerfacts
+  name: printerfacts
+spec:
+  type: NodePort
+  selector:
+    app: printerfacts
+    component: server
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 4000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: truncatedprinterfacts
+  name: truncatedprinterfacts
+spec:
+  type: NodePort
+  selector:
+    app: truncatedprinterfacts
+    component: server
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 2345
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mongo
+  name: mongo
+
+spec:
+  ports:
+    - port: 27017
+      targetPort: 27017
+  selector:
+    app: mongo
+  type: NodePort
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-persistent-claim
+spec:
+  storageClassName: generic
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Mi
+
+---  
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mongo-persistent-volume
+  labels:
+    type: local
+spec:
+  storageClassName: generic
+  capacity:
+    storage: 50Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/var/lib/mongo"

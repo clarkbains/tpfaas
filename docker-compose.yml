@@ -1,0 +1,9 @@
+version: '2'
+
+services:
+  tpfaas:
+    container_name: tpfaas
+    build: .
+    ports:
+      - '2345:2345'
+    image: tpfaas
